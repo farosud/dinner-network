@@ -38,8 +38,8 @@ function LoginPage() {
 
   return (
     <SiteSignInPage
-      title="Sign in to Index"
-      meta={<p className="site-p">Index finds the right people for you, before you even think to look.</p>}
+      title={initialMode === 'signup' ? "Join Dinner Network" : "Welcome back"}
+      meta={<p className="site-p">Meet a small table of people you’ll be glad you found.</p>}
     >
       <SiteSignInCard
         bar={initialMode === 'signup' ? "Join dinner / network" : "Sign in"}

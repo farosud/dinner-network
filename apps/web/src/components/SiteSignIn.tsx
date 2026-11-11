@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { AppsShell } from "@/app/download/page";
 import AuthForm from "@/components/AuthForm";
 import "./SiteSignIn.css";
 
@@ -12,8 +11,14 @@ export function SiteSignInPage({ kicker, title, meta, children }: {
   children?: ReactNode;
 }) {
   return (
-    <AppsShell bar="sign in" narrow>
-      <div className="signin">
+    <div className="dinner-auth-shell">
+      <header className="dinner-auth-nav">
+        <a className="dinner-auth-logo" href="/" aria-label="Dinner Network home"><span>◒</span> dinner / network</a>
+        <span className="dinner-auth-status"><i /> private beta</span>
+      </header>
+      <div className="dinner-auth-layout">
+        <aside className="dinner-auth-art" aria-hidden="true"><div className="auth-orbit auth-orbit-a" /><div className="auth-orbit auth-orbit-b" /><div className="auth-orbit auth-orbit-c" /><div className="auth-art-word">meet<br /><em>well.</em></div><span className="auth-art-star">✦</span></aside>
+        <main className="signin">
         {(kicker || title || meta) && (
           <div className="signin-intro">
             {kicker && <p className="signin-kicker">{kicker}</p>}
@@ -22,8 +27,10 @@ export function SiteSignInPage({ kicker, title, meta, children }: {
           </div>
         )}
         {children}
+        </main>
       </div>
-    </AppsShell>
+      <footer className="dinner-auth-footer"><span>good conversations, intentionally arranged</span><a href="/dinners">explore dinner network →</a></footer>
+    </div>
   );
 }
 
