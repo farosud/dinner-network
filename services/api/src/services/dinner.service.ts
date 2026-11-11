@@ -18,7 +18,7 @@ export type DinnerProfileInput = {
   approvedFields: string[];
 };
 
-function toProfileResponse(profile: typeof schema.dinnerProfiles.$inferSelect | null, preferences: typeof schema.dinnerPreferences.$inferSelect | null, facts: typeof schema.dinnerProfileFacts.$inferSelect[]) {
+function toProfileResponse(profile: typeof schema.dinnerProfiles.$inferSelect | null, preferences: typeof schema.dinnerPreferences.$inferSelect | null, facts: typeof schema.dinnerProfileFacts.$inferSelect[], cityName?: string | null) {
   if (!profile) return { profile: null, preferences: null, facts: [] };
   return {
     profile: {
@@ -28,7 +28,7 @@ function toProfileResponse(profile: typeof schema.dinnerProfiles.$inferSelect | 
       professionalBackground: profile.professionalBackground ?? [],
       currentGoals: profile.currentGoals ?? [],
       interests: profile.interests ?? [],
-      socialPreferences: profile.socialPreferences ?? {},
+      socialPreferences: { ...(profile.socialPreferences ?? {}), ...(cityName ? { cityName } : {}) },
       conversationPreferences: profile.conversationPreferences ?? {},
       availability: profile.availability ?? {},
       rawImportedText: profile.rawImportedText,
@@ -58,9 +58,12 @@ export const dinnerService = {
   async getProfile(userId: string) {
     const [profile] = await db.select().from(schema.dinnerProfiles).where(eq(schema.dinnerProfiles.userId, userId)).limit(1);
     if (!profile) return toProfileResponse(null, null, []);
+    const [city] = profile.cityId
+      ? await db.select({ name: schema.dinnerCities.name }).from(schema.dinnerCities).where(eq(schema.dinnerCities.id, profile.cityId)).limit(1)
+      : [];
     const [preferences] = await db.select().from(schema.dinnerPreferences).where(eq(schema.dinnerPreferences.userId, userId)).limit(1);
     const facts = await db.select().from(schema.dinnerProfileFacts).where(eq(schema.dinnerProfileFacts.profileId, profile.id));
-    return toProfileResponse(profile, preferences ?? null, facts);
+    return toProfileResponse(profile, preferences ?? null, facts, city?.name ?? null);
   },
 
   async saveProfile(userId: string, body: DinnerProfileInput) {
