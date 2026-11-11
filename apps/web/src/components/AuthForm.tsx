@@ -76,6 +76,7 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
   }, [providersRetryKey]);
 
   const hasGoogle = socialProviders.includes('google');
+  const isLocalDevelopment = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
   // The local API enables email/password. Keep its entry point available while
   // the providers probe retries during a backend restart.
   const canUseEmailPassword = emailPasswordEnabled || import.meta.env.DEV;
@@ -106,7 +107,7 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
         setError(magicLinkError.message || 'Failed to send sign-in link');
         return;
       }
-      if (import.meta.env.DEV) {
+      if (isLocalDevelopment) {
         const devResponse = await fetch(`/api/auth/dev-magic-link?email=${encodeURIComponent(email)}`);
         if (devResponse.ok) setDevMagicLink((await devResponse.json() as { link?: string | null }).link ?? null);
       }
@@ -194,7 +195,7 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
           <p className="av-note">
             Click the link in the email to sign in. It expires in 10 minutes.
           </p>
-          {import.meta.env.DEV && (
+          {isLocalDevelopment && (
             <p className="av-note">
               Local testing:{' '}
               {devMagicLink ? <a className="av-link" href={devMagicLink}>open the magic link</a> : 'link unavailable — restart the local API and try again'}
