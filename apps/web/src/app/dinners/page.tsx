@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Check, ChevronRight, CircleHelp, MapPin, Sparkles, Users, X } from "lucide-react";
+import { ArrowUpRight, Check, ChevronRight, CircleHelp, LogOut, MapPin, Sparkles, Users, X } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { dinnerProfileService, type DinnerProfile } from "@/services/dinners";
 import { useNavigate } from "react-router";
@@ -25,7 +25,7 @@ Ask me concise questions about my personality, hobbies, interests, current goals
 Then return a JSON object with: short_bio, social_style, interests, conversation_topics, avoid_topics, current_goals, professional_background, people_i_want_to_meet, dinner_preferences, availability, location, dietary_constraints, accessibility_needs. Do not invent facts. Mark uncertain answers as null.`;
 
 export default function DinnersPage() {
-  const { isAuthenticated, user } = useAuthContext();
+  const { isAuthenticated, user, signOut } = useAuthContext();
   const navigate = useNavigate();
   const [panel, setPanel] = useState<Panel>("overview");
   const [showPrompt, setShowPrompt] = useState(false);
@@ -83,7 +83,7 @@ export default function DinnersPage() {
             <p className="eyebrow">THURSDAY, 13 NOVEMBER 2026</p>
             <h1>{panel === "overview" ? <>find your<br /><em>people.</em></> : panel === "dinners" ? <>the next<br /><em>tables.</em></> : <>make your<br /><em>signal.</em></>}</h1>
           </div>
-          <div className="header-actions"><span className="status-pill"><i /> agents active</span>{isAuthenticated ? <button className="avatar" onClick={() => setPanel("profile")} aria-label="Open dinner profile">{(user?.name ?? user?.email ?? "EV").slice(0, 2).toUpperCase()}</button> : <button className="join-button" onClick={() => navigate("/login?next=/dinners")}>join / sign in <ArrowUpRight size={15} /></button>}</div>
+          <div className="header-actions"><span className="status-pill"><i /> agents active</span>{isAuthenticated ? <><button className="logout-button" onClick={() => void signOut()}><LogOut size={13} /> log out</button><button className="avatar" onClick={() => setPanel("profile")} aria-label="Open dinner profile">{(user?.name ?? user?.email ?? "EV").slice(0, 2).toUpperCase()}</button></> : <button className="join-button" onClick={() => navigate("/login?next=/dinners")}>join / sign in <ArrowUpRight size={15} /></button>}</div>
         </header>
 
         {panel === "overview" && (
