@@ -44,7 +44,7 @@ export default function DinnersPage() {
         if (cancelled || !result.profile) return;
         setProfile(result.profile);
         setJoined(true);
-        setLocation(result.profile.cityId ?? "Buenos Aires");
+        setLocation(String(result.profile.socialPreferences.cityName ?? result.profile.cityId ?? "Buenos Aires"));
         setGoals(result.profile.currentGoals.join("\n"));
         setEnergy(String(result.profile.socialPreferences.energy ?? "warm"));
       })
@@ -83,7 +83,7 @@ export default function DinnersPage() {
             <p className="eyebrow">THURSDAY, 13 NOVEMBER 2026</p>
             <h1>{panel === "overview" ? <>find your<br /><em>people.</em></> : panel === "dinners" ? <>the next<br /><em>tables.</em></> : <>make your<br /><em>signal.</em></>}</h1>
           </div>
-          <div className="header-actions"><span className="status-pill"><i /> agents active</span>{isAuthenticated ? <button className="avatar" onClick={() => navigate("/settings")} aria-label="Open account settings">{(user?.name ?? user?.email ?? "EV").slice(0, 2).toUpperCase()}</button> : <button className="join-button" onClick={() => navigate("/login?next=/dinners")}>join / sign in <ArrowUpRight size={15} /></button>}</div>
+          <div className="header-actions"><span className="status-pill"><i /> agents active</span>{isAuthenticated ? <button className="avatar" onClick={() => setPanel("profile")} aria-label="Open dinner profile">{(user?.name ?? user?.email ?? "EV").slice(0, 2).toUpperCase()}</button> : <button className="join-button" onClick={() => navigate("/login?next=/dinners")}>join / sign in <ArrowUpRight size={15} /></button>}</div>
         </header>
 
         {panel === "overview" && (

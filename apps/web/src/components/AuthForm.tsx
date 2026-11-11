@@ -28,7 +28,7 @@ type AuthView = 'main' | 'magic-link-sent' | 'email-password';
  * wrapper and SiteSignIn.css give it the public site's style.
  */
 export default function AuthForm({ callbackURL, onAuthenticated, variant = 'default', onMagicLinkSent, initialMode = 'signin' }: AuthFormProps) {
-  const [view, setView] = useState<AuthView>(initialMode === 'signup' ? 'email-password' : 'main');
+  const [view, setView] = useState<AuthView>('main');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -213,11 +213,11 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
             <>
               <div className="av-head">
                 <h2 id="auth-modal-title" className="av-title">
-                  Sign in to the Index Network
+                  {isSignUp ? 'Join Dinner Network' : 'Sign in to Dinner Network'}
                 </h2>
               </div>
               <p className="av-lede">
-                Write what you want. Let the network bring people to you.
+                Meet a small table of people you’ll be glad you found.
               </p>
             </>
           )}
@@ -270,7 +270,7 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
             {error && <p className="av-error">{error}</p>}
 
             <button type="submit" disabled={loading} className="av-submit">
-              {loading ? "Sending…" : "Send sign-in link"}
+              {loading ? "Sending…" : isSignUp ? "Send sign-up link" : "Send sign-in link"}
             </button>
           </form>
 
