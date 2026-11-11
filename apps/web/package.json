@@ -1,6 +1,7 @@
 {
   "name": "@indexnetwork/web",
   "version": "0.83.1",
+  "type": "module",
   "license": "MIT",
   "scripts": {
     "dev": "vite --host ::",
