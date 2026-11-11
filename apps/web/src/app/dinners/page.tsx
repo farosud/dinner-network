@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Check, ChevronRight, CircleHelp, LogOut, MapPin, Sparkles, Users, X } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { dinnerProfileService, type DinnerProfile } from "@/services/dinners";
+import { dinnerProfileService, type DinnerEnrichmentResult, type DinnerProfile, type DinnerProfileInput } from "@/services/dinners";
 import { useNavigate } from "react-router";
 import "./dinners.css";
 
@@ -27,7 +27,7 @@ Then return a JSON object with: short_bio, social_style, interests, conversation
 export default function DinnersPage() {
   const { isAuthenticated, user, signOut } = useAuthContext();
   const navigate = useNavigate();
-  const [panel, setPanel] = useState<Panel>("overview");
+  const [panel, setPanel] = useState<Panel>(() => new URLSearchParams(window.location.search).get("panel") === "profile" ? "profile" : "overview");
   const [showPrompt, setShowPrompt] = useState(false);
   const [joined, setJoined] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -35,6 +35,11 @@ export default function DinnersPage() {
   const [location, setLocation] = useState("Buenos Aires");
   const [goals, setGoals] = useState("");
   const [energy, setEnergy] = useState("warm");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [enrichment, setEnrichment] = useState<DinnerEnrichmentResult | null>(null);
+  const [enrichmentApproved, setEnrichmentApproved] = useState(false);
+  const [researching, setResearching] = useState(false);
+  const [researchError, setResearchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -47,10 +52,30 @@ export default function DinnersPage() {
         setLocation(String(result.profile.socialPreferences.cityName ?? result.profile.cityId ?? "Buenos Aires"));
         setGoals(result.profile.currentGoals.join("\n"));
         setEnergy(String(result.profile.socialPreferences.energy ?? "warm"));
+        setLinkedinUrl(String(result.profile.socialPreferences.linkedinUrl ?? ""));
       })
       .catch(() => { /* The fixture experience remains usable while the API is unavailable. */ });
     return () => { cancelled = true; };
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || panel !== "profile" || researching || enrichment) return;
+    setResearching(true);
+    setResearchError(null);
+    dinnerProfileService.research({ name: user?.name ?? undefined, city: location, linkedinUrl, professionalBackground: profile?.professionalBackground ?? [] })
+      .then(setEnrichment)
+      .catch((error) => setResearchError(error instanceof Error ? error.message : "We couldn’t research your public profile."))
+      .finally(() => setResearching(false));
+  }, [isAuthenticated, panel, user?.name, location, linkedinUrl, profile, researching, enrichment]);
+
+  function saveSignal() {
+    const input: DinnerProfileInput = { cityId: location || null, shortBio: profile?.shortBio ?? null, professionalBackground: profile?.professionalBackground ?? [], currentGoals: goals.split("\n").map((value) => value.trim()).filter(Boolean), interests: profile?.interests ?? [], socialPreferences: { ...(profile?.socialPreferences ?? {}), cityName: location, energy, linkedinUrl: linkedinUrl.trim() || null }, conversationPreferences: profile?.conversationPreferences ?? {}, availability: { days: ["tuesday", "thursday"] }, rawImportedText: profile?.rawImportedText ?? null, dietaryConstraints: [], accessibilityNeeds: [], preferredGroupSize: 5, preferredEnergy: energy, noveltyPreference: "balanced", approvedFields: ["location", "currentGoals", "socialPreferences"] };
+    void dinnerProfileService.save(input).then(async (result) => {
+      setProfile(result.profile);
+      setJoined(true);
+      if (enrichment && enrichmentApproved) await dinnerProfileService.approveEnrichment({ brief: enrichment.brief, sources: enrichment.sources });
+    });
+  }
 
   const profileProgress = useMemo(() => joined ? 82 : 36, [joined]);
 
@@ -99,7 +124,7 @@ export default function DinnersPage() {
 
         {panel === "dinners" && <section className="dinner-list"><div className="list-intro"><p>Every dinner is selected around a real table, a real date, and enough room for the conversation to breathe.</p><div className="date-filter"><button className="selected">all cities</button><button>this week</button><button>next week</button></div></div>{upcoming.map((dinner) => <article className="dinner-event" key={dinner.date}><div className={`date-tile ${dinner.accent}`}><strong>{dinner.date.split(" ")[1]}</strong><span>{dinner.date.split(" ")[0]}</span></div><div className="event-main"><div className="event-meta"><span>{dinner.day}</span><span>·</span><span>{dinner.city}</span></div><h2>{dinner.place}</h2><p><MapPin size={14} /> {dinner.area} <span className="meta-divider">/</span> <Users size={14} /> {dinner.seats}</p><span className={`event-tag ${dinner.accent}`}>{dinner.tag}</span></div><button className="event-arrow" onClick={() => setJoined(true)} aria-label={`Join ${dinner.day} dinner`}><ArrowUpRight size={20} /></button></article>)}</section>}
 
-        {panel === "profile" && <section className="profile-panel"><div className="profile-intro"><span className="section-label">YOUR PRIVATE SIGNAL</span><h2>Tell us enough to<br /><em>seat you well.</em></h2><p>Nothing becomes visible to another participant until you approve the dinner. We use this to help your agent find the right kind of room.</p><button className="dark-button" onClick={() => setShowPrompt(true)}><Sparkles size={16} /> get questions for your agent</button></div><div className="profile-fields"><label>Where are you based?<input value={location} onChange={(event) => setLocation(event.target.value)} /></label><label>What are you working toward right now?<textarea placeholder="A company, a record, a move, a new question…" value={goals} onChange={(event) => setGoals(event.target.value)} /></label><div className="field-row"><label>Social energy<select value={energy} onChange={(event) => setEnergy(event.target.value)}><option value="warm">warm, curious</option><option value="quiet">quiet, observant</option><option value="electric">high energy</option></select></label><label>Best dinner nights<select defaultValue="both"><option value="both">Tuesday + Thursday</option><option value="tuesday">Tuesday</option><option value="thursday">Thursday</option></select></label></div><button className="save-button" onClick={() => { const input = { cityId: location || null, shortBio: profile?.shortBio ?? null, professionalBackground: profile?.professionalBackground ?? [], currentGoals: goals.split("\n").map((value) => value.trim()).filter(Boolean), interests: profile?.interests ?? [], socialPreferences: { ...(profile?.socialPreferences ?? {}), energy }, conversationPreferences: profile?.conversationPreferences ?? {}, availability: { days: ["tuesday", "thursday"] }, rawImportedText: profile?.rawImportedText ?? null, dietaryConstraints: [], accessibilityNeeds: [], preferredGroupSize: 5, preferredEnergy: energy, noveltyPreference: "balanced", approvedFields: ["location", "currentGoals", "socialPreferences"] }; void (isAuthenticated ? dinnerProfileService.save(input).then((result) => { setProfile(result.profile); setJoined(true); }) : Promise.resolve()).catch(() => { /* Keep local edits visible if the API is offline. */ }); setJoined(true); }}><Check size={16} /> save my signal</button></div></section>}
+        {panel === "profile" && <section className="profile-panel"><div className="profile-intro"><span className="section-label">YOUR PRIVATE SIGNAL</span><h2>Tell us enough to<br /><em>seat you well.</em></h2><p>Nothing becomes visible to another participant until you approve the dinner. We use this to help your agent find the right kind of room.</p><button className="dark-button" onClick={() => setShowPrompt(true)}><Sparkles size={16} /> get questions for your agent</button></div><div className="profile-fields"><label>Where are you based?<input value={location} onChange={(event) => setLocation(event.target.value)} /></label><label>LinkedIn profile <span className="field-note">optional, helps us identify the right public profile</span><input value={linkedinUrl} onChange={(event) => setLinkedinUrl(event.target.value)} placeholder="https://www.linkedin.com/in/you" /></label>{researching && <div className="enrichment-loading">searching public sources for your profile…</div>}{researchError && <div className="enrichment-error">{researchError}</div>}{enrichment && <div className="enrichment-result"><div className="enrichment-result-head"><Sparkles size={16} /><strong>what we found</strong><button type="button" className={enrichmentApproved ? "approved" : ""} onClick={() => setEnrichmentApproved((current) => !current)}>{enrichmentApproved ? "approved ✓" : "use this brief"}</button></div><p>{enrichment.brief}</p>{enrichment.sources.length > 0 && <div className="enrichment-sources"><span>sources</span>{enrichment.sources.map((source) => <a key={source.url ?? source.title} href={source.url} target="_blank" rel="noreferrer">{source.title || source.url}</a>)}</div>}</div>}<label>What are you working toward right now?<textarea placeholder="A company, a record, a move, a new question…" value={goals} onChange={(event) => setGoals(event.target.value)} /></label><div className="field-row"><label>Social energy<select value={energy} onChange={(event) => setEnergy(event.target.value)}><option value="warm">warm, curious</option><option value="quiet">quiet, observant</option><option value="electric">high energy</option></select></label><label>Best dinner nights<select defaultValue="both"><option value="both">Tuesday + Thursday</option><option value="tuesday">Tuesday</option><option value="thursday">Thursday</option></select></label></div><button className="save-button" onClick={saveSignal}><Check size={16} /> save my signal</button></div></section>}
       </section>
 
       {showPrompt && <div className="prompt-backdrop" role="presentation" onMouseDown={() => setShowPrompt(false)}><div className="prompt-modal" role="dialog" aria-modal="true" aria-labelledby="prompt-title" onMouseDown={(event) => event.stopPropagation()}><button className="modal-close" onClick={() => setShowPrompt(false)} aria-label="Close"><X size={18} /></button><span className="section-label">COPY INTO CLAUDE / CODEX / HERMES</span><h2 id="prompt-title">let your agent<br /><em>ask better questions.</em></h2><p>Paste this into the assistant you already use. Bring the answer back here and you can edit every field before sharing it.</p><pre>{promptText}</pre><button className="dark-button full-button" onClick={copyPrompt}>{copied ? <><Check size={16} /> copied to clipboard</> : <>copy prompt <ArrowUpRight size={16} /></>}</button></div></div>}
