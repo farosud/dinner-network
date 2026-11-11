@@ -1,9 +1,7 @@
 import { Navigate } from "react-router";
 
 import { useAuthContext } from "@/contexts/AuthContext";
-import { needsOnboarding } from "@/services/onboarding";
 import { takePendingPairRedirect } from "@/lib/pending-pair";
-import DiscoverHome from "@/components/DiscoverHome";
 import LandingPage from "@/app/landing/page";
 
 /**
@@ -14,16 +12,14 @@ import LandingPage from "@/app/landing/page";
  * loading screen while pending).
  */
 function RootPage() {
-  const { isAuthenticated, user } = useAuthContext();
+  const { isAuthenticated } = useAuthContext();
 
   if (isAuthenticated) {
-    // Same durable gate as the Mac app: an unconfirmed profile reviews it first.
-    if (needsOnboarding(user)) return <Navigate to="/onboarding" replace />;
-    // Onboarding ends here. Someone who signed up from a profile's "pair agents"
-    // goes back to that profile, which finishes the pair.
+    // Dinner Network is the product entry point for this fork. Keep any
+    // protocol handoff intact, then send authenticated people to dinner flow.
     const pendingPairPath = takePendingPairRedirect();
     if (pendingPairPath) return <Navigate to={pendingPairPath} replace />;
-    return <DiscoverHome />;
+    return <Navigate to="/dinners" replace />;
   }
 
   return <LandingPage />;
