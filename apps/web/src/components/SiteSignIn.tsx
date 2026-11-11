@@ -89,7 +89,12 @@ export function SiteSignInCard({ bar, sentTo, sentNote, callbackURL, onAuthentic
     let cancelled = false;
     fetch(`/api/auth/dev-magic-link?email=${encodeURIComponent(sentTo)}`)
       .then((response) => response.ok ? response.json() as Promise<{ link?: string | null }> : null)
-      .then((result) => { if (!cancelled) setDevMagicLink(result?.link ?? null); })
+      .then((result) => {
+        if (cancelled || !result?.link) return;
+        const localLink = new URL(result.link);
+        localLink.hostname = window.location.hostname;
+        setDevMagicLink(localLink.toString());
+      })
       .catch(() => { if (!cancelled) setDevMagicLink(null); });
     return () => { cancelled = true; };
   }, [sentTo]);
