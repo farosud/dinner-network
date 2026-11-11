@@ -19,6 +19,7 @@ function LoginPage() {
   // The MCP plugin passes the original authorize query to /login. The API
   // validates it again; no client-provided redirect URL is navigated to here.
   const isMcpLogin = new URLSearchParams(window.location.search).has('client_id');
+  const initialMode = new URLSearchParams(window.location.search).get('mode') === 'signup' ? 'signup' as const : 'signin' as const;
   const authorizeURL = `${protocolOrigin() || window.location.origin}/api/auth/mcp/authorize${window.location.search}`;
   const destination = isMcpLogin ? authorizeURL : resumePath();
   const finishLogin = () => window.location.replace(destination);
@@ -41,7 +42,7 @@ function LoginPage() {
       meta={<p className="site-p">Index finds the right people for you, before you even think to look.</p>}
     >
       <SiteSignInCard
-        bar="Sign in"
+        bar={initialMode === 'signup' ? "Join dinner / network" : "Sign in"}
         sentTo={linkSentTo}
         sentNote="Open the link in the email to sign in. It expires in 10 minutes."
         callbackURL={isMcpLogin ? window.location.href : window.location.origin + destination}
@@ -52,6 +53,7 @@ function LoginPage() {
         }}
         onMagicLinkSent={setLinkSentTo}
         onBack={() => setLinkSentTo(null)}
+        initialMode={initialMode}
       />
     </SiteSignInPage>
   );

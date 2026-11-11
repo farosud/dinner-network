@@ -61,7 +61,7 @@ function Card({ bar, className, children }: { bar: string; className?: string; c
  * email" and stays there: the link opens a new tab that finishes sign-in, so
  * this tab never reacts to the shared session arriving.
  */
-export function SiteSignInCard({ bar, sentTo, sentNote, callbackURL, onAuthenticated, onMagicLinkSent, onBack }: {
+export function SiteSignInCard({ bar, sentTo, sentNote, callbackURL, onAuthenticated, onMagicLinkSent, onBack, initialMode }: {
   bar: string;
   /** Address the link went to; set means the card shows "check your email". */
   sentTo: string | null;
@@ -70,6 +70,7 @@ export function SiteSignInCard({ bar, sentTo, sentNote, callbackURL, onAuthentic
   onAuthenticated: () => void;
   onMagicLinkSent: (email: string) => void;
   onBack: () => void;
+  initialMode?: 'signin' | 'signup';
 }) {
   if (sentTo) {
     return (
@@ -92,6 +93,7 @@ export function SiteSignInCard({ bar, sentTo, sentNote, callbackURL, onAuthentic
         callbackURL={callbackURL}
         onAuthenticated={onAuthenticated}
         onMagicLinkSent={onMagicLinkSent}
+        initialMode={initialMode}
       />
     </Card>
   );

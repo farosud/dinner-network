@@ -1,175 +1,30 @@
-import type { CSSProperties } from "react";
+import { ArrowUpRight, CalendarDays, ChevronRight, Sparkles, Users } from "lucide-react";
 import { Link } from "react-router";
-import SiteLayout from "@/app/site/SiteLayout";
-import DevGuides from "@/app/site/DevGuides";
-import FeaturedPost from "@/app/site/FeaturedPost";
-import GithubStars from "@/app/site/GithubStars";
-import NewsletterForm from "@/app/site/NewsletterForm";
-import { formatEntryDate, useBlogEntries } from "@/app/site/blog-entries";
-import { CONTACT_EMAIL, docsUrl } from "@/app/site/links";
-import FanCanvas from "./FanCanvas";
-import FeedsFlow from "./FeedsFlow";
-import HeroAccess from "./HeroAccess";
-import { HermesMock, MacMock } from "./ProductMocks";
-import Trace from "./Trace";
-import "./home.css";
+import "./dinner-home.css";
 
-const STEPS = [
-  {
-    title: "Intent creation",
-    body: "You noodle on your ideas with your agent. They structure that context as goals, constraints, and preferences, and draw out implicit intents.",
-    href: docsUrl("/intent"),
-  },
-  {
-    title: "Discovery + negotiation",
-    body: "Your agent socializes with other people's agents, negotiating with each in parallel on whether the wants meet, the timing is right, and the meeting is worth both people.",
-    href: docsUrl("/negotiation"),
-  },
-  {
-    title: "Outcome + learning",
-    body: "When agents find someone worth talking to, that becomes an opportunity: a proposed connection. Accept or pass. Every outcome sharpens the next negotiation.",
-    href: docsUrl("/opportunity"),
-  },
-];
-
-function RecentPosts() {
-  const entries = useBlogEntries();
-  if (!entries) return null;
-  return (
-    <div className="home-posts">
-      {entries.slice(0, 4).map((e) => (
-        <Link className="site-post-item" to={e.href} key={e.href} target="_blank" rel="noreferrer">
-          <span className="site-meta">{formatEntryDate(e.date)}</span>
-          <span className="site-post-item-body">
-            <span className="site-post-item-title">{e.title}</span>
-            {e.summary && <span className="site-post-item-summary">{e.summary}</span>}
-          </span>
-        </Link>
-      ))}
-    </div>
-  );
-}
+const signupPath = "/login?next=/dinners&mode=signup";
+const signinPath = "/login?next=/dinners";
 
 export default function LandingPage() {
   return (
-    <SiteLayout banner>
-      <section className="site-hero">
-        <h1 className="site-h1">Give your agent someone to talk to</h1>
-        <div className="site-prose">
-          <p>
-            Index is the social layer between personal agents. It makes it possible to find the
-            others who share your flavor of weird, no searching or posting needed.
-          </p>
-          <p>
-            You&rsquo;re already telling your agent what you&rsquo;re interested in, and what
-            you&rsquo;re secretly tinkering on. We give personal agents the coordination protocol to
-            socialize their humans&apos; intents. They structure mutual intents into opportunities,
-            negotiate on fit, learn from each turn, and surface connections between people who
-            otherwise might&apos;ve just missed each other.
-          </p>
+    <main className="dinner-home">
+      <nav className="home-nav" aria-label="Dinner Network">
+        <Link className="home-logo" to="/" aria-label="Dinner Network home"><span>◒</span> dinner / network</Link>
+        <div className="home-nav-links">
+          <a href="#how-it-works">how it works</a><a href="#membership">membership</a>
+          <Link className="home-signin" to={signinPath}>sign in <ArrowUpRight size={14} /></Link>
         </div>
-        <HeroAccess />
-        <FanCanvas />
+      </nav>
+      <section className="home-hero">
+        <div className="home-hero-copy"><p className="home-kicker"><span /> curated dinners for curious people</p><h1>Find your<br /><em>people.</em></h1><p className="home-lede">Small dinners, thoughtfully assembled. We look across the network for shared interests, complementary goals, and the kind of energy that makes a Tuesday worth leaving home for.</p><div className="home-actions"><Link className="home-primary" to={signupPath}>sign up with email <ArrowUpRight size={17} /></Link><Link className="home-secondary" to={signupPath}><span className="google-mark">G</span> sign up with Google</Link></div><p className="home-reassurance">Your first dinner is free · no credit card required</p></div>
+        <div className="home-hero-art" aria-label="A dinner table forming from overlapping connections"><div className="art-orbit art-orbit-a" /><div className="art-orbit art-orbit-b" /><div className="art-orbit art-orbit-c" /><div className="art-center"><span>meet</span><span>well</span></div><span className="art-star">✦</span><div className="art-caption"><span>01</span> agents are reading the room</div></div>
       </section>
-
-      <section className="site-section">
-        <FeedsFlow />
-        <Link className="site-arrow-link" to="/about" target="_blank" rel="noreferrer">About us →</Link>
-      </section>
-
-      <section className="site-section site-section--wide">
-        <h2 className="site-tag">How it works</h2>
-        <div className="site-grid">
-          {STEPS.map((s) => (
-            <div key={s.title}>
-              <h3 className="site-col-title">{s.title}</h3>
-              <p className="site-p">{s.body}</p>
-              <a className="site-arrow-link" href={s.href} target="_blank" rel="noreferrer">Learn more →</a>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="home-trace-section">
-        <Trace />
-      </section>
-
-      <section className="site-section site-section--wide">
-        <h2 className="site-tag">Where Index runs</h2>
-        <div className="home-runs">
-          <div className="home-run">
-            <h3 className="site-col-title">For you &amp; your agent</h3>
-            <div className="home-run-body">
-              <p className="site-p">
-                Install Index and use your agent as you already do, or install our app. Any of your
-                intents that need another person to fulfill them quietly route through Index.
-              </p>
-            </div>
-            <div className="home-run-shots">
-              <div className="home-run-shot">
-                <a className="home-run-scene" href={docsUrl("/use/mac")} target="_blank" rel="noreferrer" aria-label="Mac app" style={{ "--scene": "url(/site/runs-cactus.jpg)" } as CSSProperties}>
-                  <MacMock />
-                </a>
-                <a className="home-run-caption" href={docsUrl("/use/mac")} target="_blank" rel="noreferrer">Mac app →</a>
-              </div>
-              <div className="home-run-shot">
-                <Link className="home-run-scene" to="/hermes" aria-label="Hermes plugin" style={{ "--scene": "url(/site/runs-tableau.jpg)" } as CSSProperties}>
-                  <HermesMock />
-                </Link>
-                <Link className="home-run-caption" to="/hermes">Hermes plugin →</Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="home-run">
-            <h3 className="site-col-title">For communities</h3>
-            <div className="home-run-body">
-              <p className="site-p">
-                Run Index to surface the latent potential of your community by connecting the right
-                people. You set the guidelines of what intents are discoverable.
-              </p>
-              <a className="site-arrow-link site-arrow-link--13" href={`mailto:${CONTACT_EMAIL}`}>Create your network →</a>
-            </div>
-          </div>
-
-          <div className="home-run">
-            <h3 className="site-col-title">For developers</h3>
-            <div className="home-run-body">
-              <p className="site-p">
-                Intents, networks, negotiation, and opportunities are open building blocks. Compose
-                them into products for sales, recruiting, dating, and marketplaces, or bring your
-                own agent to negotiate.
-              </p>
-              <DevGuides />
-            </div>
-            <div className="home-run-oss">
-              <div>
-                <span className="site-meta">Open source</span>
-                <p className="site-col-title">Read the code. Run your own.</p>
-              </div>
-              <div className="home-run-body">
-                <p className="site-p">
-                  Index is developed in the open. Fork it, open an issue, or self-host an instance.
-                </p>
-                <GithubStars />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="site-section site-section--wide">
-        <h2 className="site-tag">Blog</h2>
-        <FeaturedPost />
-        <RecentPosts />
-        <div className="home-all-posts">
-          <Link to="/blog" target="_blank" rel="noreferrer">All posts →</Link>
-        </div>
-        <div className="site-newsletter-block">
-          <h3 className="site-col-title">Letters from Index</h3>
-          <NewsletterForm />
-        </div>
-      </section>
-    </SiteLayout>
+      <section className="home-strip" id="how-it-works"><div><span className="home-index">01</span><strong>Tell us your signal</strong><p>Personality, interests, current goals, and the kind of conversation you want more of.</p></div><ChevronRight className="home-strip-arrow" size={20} /><div><span className="home-index">02</span><strong>We form the table</strong><p>Our matching system finds the right mix of people as the network grows in each city.</p></div><ChevronRight className="home-strip-arrow" size={20} /><div><span className="home-index">03</span><strong>Show up hungry</strong><p>We choose the restaurant, make the reservation, and leave the evening to the people.</p></div></section>
+      <section className="home-pools"><div className="home-section-heading"><p className="home-kicker">the network is taking shape</p><h2>Different people.<br /><em>Right table.</em></h2><p>There is no single type of member here. As more people join, smaller worlds emerge around what they are making, learning, and looking for next.</p></div><div className="home-pool-grid"><article className="home-pool pool-coral"><Users size={18} /><h3>builders with a<br />second act</h3><span>founders · operators · makers</span></article><article className="home-pool pool-lime"><Sparkles size={18} /><h3>music ×<br />technology</h3><span>artists · engineers · listeners</span></article><article className="home-pool pool-blue"><CalendarDays size={18} /><h3>new in<br />the city</h3><span>curious people · fresh starts</span></article></div></section>
+      <section className="home-bottom" id="membership"><div><p className="home-kicker">a better kind of recurring plan</p><h2>One good dinner<br /><em>can change a week.</em></h2></div><div className="home-membership"><p>Join for $18 / month after your first dinner. We host tables on Tuesdays and Thursdays across multiple cities. You pay for your own food; we take care of the rest.</p><Link className="home-primary" to={signupPath}>join the network <ArrowUpRight size={17} /></Link></div></section>
+      <footer className="home-footer"><span>© dinner / network</span><span>private beta · built for better conversations</span><Link to={signinPath}>already a member? sign in →</Link></footer>
+    </main>
   );
 }
+
+export const Component = LandingPage;
