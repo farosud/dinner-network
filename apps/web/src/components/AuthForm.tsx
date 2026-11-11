@@ -4,7 +4,7 @@ import { ensureLandingFonts } from '@/app/landing/fonts';
 import { protocolOrigin } from '@/lib/protocol-origin';
 import './AuthModal.css';
 
-const PROTOCOL_BASE = protocolOrigin();
+const PROTOCOL_BASE = import.meta.env.DEV ? "" : protocolOrigin();
 const API_BASE = `${PROTOCOL_BASE}/api`;
 
 interface AuthFormProps {
@@ -95,6 +95,7 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setDevMagicLink(null);
 
     try {
       const { error: magicLinkError } = await authClient.signIn.magicLink({
@@ -106,7 +107,7 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
         return;
       }
       if (import.meta.env.DEV) {
-        const devResponse = await fetch(`${API_BASE}/auth/dev-magic-link?email=${encodeURIComponent(email)}`);
+        const devResponse = await fetch(`/api/auth/dev-magic-link?email=${encodeURIComponent(email)}`);
         if (devResponse.ok) setDevMagicLink((await devResponse.json() as { link?: string | null }).link ?? null);
       }
       setView('magic-link-sent');
@@ -193,9 +194,10 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
           <p className="av-note">
             Click the link in the email to sign in. It expires in 10 minutes.
           </p>
-          {devMagicLink && (
+          {import.meta.env.DEV && (
             <p className="av-note">
-              Local testing: <a className="av-link" href={devMagicLink}>open the magic link</a>
+              Local testing:{' '}
+              {devMagicLink ? <a className="av-link" href={devMagicLink}>open the magic link</a> : 'link unavailable — restart the local API and try again'}
             </p>
           )}
           <button type="button" className="av-submit ghost" onClick={resetForm}>

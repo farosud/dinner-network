@@ -6,13 +6,15 @@ import { protocolOrigin } from "./protocol-origin";
 
 // In production this is the protocol service. In dev it stays empty so Vite proxies /api,
 // unless settings has pointed the app at another origin.
+const AUTH_BASE_URL = import.meta.env.DEV ? "" : protocolOrigin();
+
 export const authClient = createAuthClient({
-  baseURL: protocolOrigin(),
+  baseURL: AUTH_BASE_URL,
   basePath: "/api/auth",
   plugins: [magicLinkClient(), jwtClient(), apiKeyClient(), deviceAuthorizationClient()],
 });
 
-const authBaseURL = `${protocolOrigin()}/api/auth`;
+const authBaseURL = `${AUTH_BASE_URL}/api/auth`;
 
 export type McpConsentDetails = {
   /** Self-registered by the client; not verified. */
