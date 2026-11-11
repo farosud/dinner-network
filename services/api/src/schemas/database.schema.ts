@@ -17,6 +17,11 @@ export const agentTypeEnum = pgEnum('agent_type', ['external', 'system']);
 export const agentStatusEnum = pgEnum('agent_status', ['active', 'inactive']);
 export const negotiationOutcomeEnum = pgEnum('negotiation_outcome', ['agreed', 'declined', 'closed']);
 export const negotiationTurnActionEnum = pgEnum('negotiation_turn_action', ['propose', 'counter', 'accept', 'decline']);
+export const dinnerPoolStatusEnum = pgEnum('dinner_pool_status', ['forming', 'active', 'paused', 'archived']);
+export const dinnerEventStatusEnum = pgEnum('dinner_event_status', ['draft', 'open', 'full', 'confirmed', 'completed', 'cancelled']);
+export const dinnerInvitationStatusEnum = pgEnum('dinner_invitation_status', ['proposed', 'invited', 'accepted', 'declined', 'cancelled']);
+export const dinnerRsvpStatusEnum = pgEnum('dinner_rsvp_status', ['pending', 'attending', 'declined', 'cancelled', 'no_show']);
+export const profileFactProvenanceEnum = pgEnum('profile_fact_provenance', ['user_entered', 'assistant_imported', 'web_enriched', 'system_inferred']);
 
 export interface OnboardingState {
   completedAt?: string;
@@ -570,6 +575,145 @@ export const agents = pgTable('agents', {
 }));
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// Dinner network
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const dinnerCities = pgTable('dinner_cities', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  country: text('country').notNull(),
+  timezone: text('timezone').notNull(),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({ cityNameUnique: uniqueIndex('dinner_cities_name_country_unique').on(table.name, table.country) }));
+
+export const dinnerProfiles = pgTable('dinner_profiles', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  cityId: text('city_id').references(() => dinnerCities.id, { onDelete: 'set null' }),
+  shortBio: text('short_bio'),
+  professionalBackground: jsonb('professional_background').$type<string[]>().default([]),
+  currentGoals: jsonb('current_goals').$type<string[]>().default([]),
+  interests: jsonb('interests').$type<string[]>().default([]),
+  socialPreferences: jsonb('social_preferences').$type<Record<string, unknown>>().default({}),
+  conversationPreferences: jsonb('conversation_preferences').$type<Record<string, unknown>>().default({}),
+  availability: jsonb('availability').$type<Record<string, unknown>>().default({}),
+  rawImportedText: text('raw_imported_text'),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const dinnerProfileFacts = pgTable('dinner_profile_facts', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  profileId: text('profile_id').notNull().references(() => dinnerProfiles.id, { onDelete: 'cascade' }),
+  fieldName: text('field_name').notNull(),
+  value: jsonb('value').notNull(),
+  provenance: profileFactProvenanceEnum('provenance').notNull(),
+  sourceUrl: text('source_url'),
+  sourceTimestamp: timestamp('source_timestamp', { withTimezone: true }),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({ profileFieldIdx: index('dinner_profile_facts_profile_field_idx').on(table.profileId, table.fieldName) }));
+
+export const dinnerPreferences = pgTable('dinner_preferences', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  preferredGroupSize: integer('preferred_group_size').default(5),
+  preferredEnergy: text('preferred_energy'),
+  noveltyPreference: text('novelty_preference'),
+  dietaryConstraints: jsonb('dietary_constraints').$type<string[]>().default([]),
+  accessibilityNeeds: jsonb('accessibility_needs').$type<string[]>().default([]),
+  poolPreferences: jsonb('pool_preferences').$type<Record<string, unknown>>().default({}),
+  blockedUserIds: jsonb('blocked_user_ids').$type<string[]>().default([]),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const dinnerPools = pgTable('dinner_pools', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  cityId: text('city_id').notNull().references(() => dinnerCities.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  poolType: text('pool_type').notNull(),
+  status: dinnerPoolStatusEnum('status').notNull().default('forming'),
+  minimumSize: integer('minimum_size').notNull().default(8),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({ cityStatusIdx: index('dinner_pools_city_status_idx').on(table.cityId, table.status) }));
+
+export const dinnerPoolMemberships = pgTable('dinner_pool_memberships', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  poolId: text('pool_id').notNull().references(() => dinnerPools.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  source: text('source').notNull(),
+  optedInAt: timestamp('opted_in_at', { withTimezone: true }),
+  optedOutAt: timestamp('opted_out_at', { withTimezone: true }),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({ poolUserUnique: uniqueIndex('dinner_pool_memberships_pool_user_unique').on(table.poolId, table.userId) }));
+
+export const dinnerRestaurants = pgTable('dinner_restaurants', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  cityId: text('city_id').notNull().references(() => dinnerCities.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  address: text('address').notNull(),
+  reservationContact: text('reservation_contact'),
+  dietaryCapabilities: jsonb('dietary_capabilities').$type<string[]>().default([]),
+  accessibilityCapabilities: jsonb('accessibility_capabilities').$type<string[]>().default([]),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const dinnerEvents = pgTable('dinner_events', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  cityId: text('city_id').notNull().references(() => dinnerCities.id, { onDelete: 'cascade' }),
+  eventDate: timestamp('event_date', { withTimezone: true }).notNull(),
+  weekday: text('weekday').notNull(),
+  restaurantId: text('restaurant_id').references(() => dinnerRestaurants.id, { onDelete: 'set null' }),
+  capacityMin: integer('capacity_min').notNull().default(4),
+  capacityMax: integer('capacity_max').notNull().default(6),
+  status: dinnerEventStatusEnum('status').notNull().default('draft'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({ cityDateIdx: index('dinner_events_city_date_idx').on(table.cityId, table.eventDate) }));
+
+export const dinnerGroups = pgTable('dinner_groups', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  dinnerEventId: text('dinner_event_id').notNull().references(() => dinnerEvents.id, { onDelete: 'cascade' }),
+  poolId: text('pool_id').references(() => dinnerPools.id, { onDelete: 'set null' }),
+  matchingExplanation: text('matching_explanation'),
+  matchingContext: jsonb('matching_context').$type<Record<string, unknown>>().default({}),
+  status: dinnerEventStatusEnum('status').notNull().default('draft'),
+  negotiationId: text('negotiation_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const dinnerMemberships = pgTable('dinner_memberships', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  dinnerGroupId: text('dinner_group_id').notNull().references(() => dinnerGroups.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  invitationStatus: dinnerInvitationStatusEnum('invitation_status').notNull().default('proposed'),
+  rsvpStatus: dinnerRsvpStatusEnum('rsvp_status').notNull().default('pending'),
+  invitedAt: timestamp('invited_at', { withTimezone: true }),
+  respondedAt: timestamp('responded_at', { withTimezone: true }),
+  cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+}, (table) => ({ groupUserUnique: uniqueIndex('dinner_memberships_group_user_unique').on(table.dinnerGroupId, table.userId) }));
+
+export const dinnerFeedback = pgTable('dinner_feedback', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  dinnerGroupId: text('dinner_group_id').notNull().references(() => dinnerGroups.id, { onDelete: 'cascade' }),
+  reviewerUserId: text('reviewer_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reviewedUserId: text('reviewed_user_id').references(() => users.id, { onDelete: 'set null' }),
+  overallDinnerScore: integer('overall_dinner_score'),
+  participantScore: integer('participant_score'),
+  wouldAttendAgain: boolean('would_attend_again'),
+  writtenFeedback: text('written_feedback'),
+  safetyFlag: boolean('safety_flag').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({ reviewerSubjectIdx: index('dinner_feedback_reviewer_subject_idx').on(table.dinnerGroupId, table.reviewerUserId, table.reviewedUserId) }));
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Relations
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -639,6 +783,32 @@ export const agentsRelations = relations(agents, ({ one }) => ({
   }),
 }));
 
+export const dinnerProfilesRelations = relations(dinnerProfiles, ({ one, many }) => ({
+  user: one(users, { fields: [dinnerProfiles.userId], references: [users.id] }),
+  city: one(dinnerCities, { fields: [dinnerProfiles.cityId], references: [dinnerCities.id] }),
+  facts: many(dinnerProfileFacts),
+}));
+
+export const dinnerCitiesRelations = relations(dinnerCities, ({ many }) => ({
+  profiles: many(dinnerProfiles),
+  pools: many(dinnerPools),
+  restaurants: many(dinnerRestaurants),
+  events: many(dinnerEvents),
+}));
+
+export const dinnerPoolsRelations = relations(dinnerPools, ({ one, many }) => ({
+  city: one(dinnerCities, { fields: [dinnerPools.cityId], references: [dinnerCities.id] }),
+  memberships: many(dinnerPoolMemberships),
+  groups: many(dinnerGroups),
+}));
+
+export const dinnerGroupsRelations = relations(dinnerGroups, ({ one, many }) => ({
+  event: one(dinnerEvents, { fields: [dinnerGroups.dinnerEventId], references: [dinnerEvents.id] }),
+  pool: one(dinnerPools, { fields: [dinnerGroups.poolId], references: [dinnerPools.id] }),
+  members: many(dinnerMemberships),
+  feedback: many(dinnerFeedback),
+}));
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Export types
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -661,5 +831,15 @@ export type Negotiation = typeof negotiations.$inferSelect;
 export type NewNegotiation = typeof negotiations.$inferInsert;
 export type NegotiationTurn = typeof negotiationTurns.$inferSelect;
 export type NewNegotiationTurn = typeof negotiationTurns.$inferInsert;
+export type DinnerCity = typeof dinnerCities.$inferSelect;
+export type NewDinnerCity = typeof dinnerCities.$inferInsert;
+export type DinnerProfile = typeof dinnerProfiles.$inferSelect;
+export type NewDinnerProfile = typeof dinnerProfiles.$inferInsert;
+export type DinnerPool = typeof dinnerPools.$inferSelect;
+export type NewDinnerPool = typeof dinnerPools.$inferInsert;
+export type DinnerEvent = typeof dinnerEvents.$inferSelect;
+export type NewDinnerEvent = typeof dinnerEvents.$inferInsert;
+export type DinnerGroup = typeof dinnerGroups.$inferSelect;
+export type NewDinnerGroup = typeof dinnerGroups.$inferInsert;
 
 export * from './conversation.schema';

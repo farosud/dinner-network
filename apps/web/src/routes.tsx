@@ -60,6 +60,10 @@ export const router = createBrowserRouter([
         lazy: lazyRoute("/about", () => import("@/app/about/page")),
       },
       {
+        path: "/dinners",
+        lazy: lazyRoute("/dinners", () => import("@/app/dinners/page")),
+      },
+      {
         path: "/hermes",
         lazy: lazyRoute("/hermes", () => import("@/app/hermes/page")),
       },
