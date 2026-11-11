@@ -65,10 +65,22 @@ export const dinnerService = {
 
   async saveProfile(userId: string, body: DinnerProfileInput) {
     const now = new Date();
+    let cityId = body.cityId ?? null;
+    if (cityId) {
+      const [byId] = await db.select({ id: schema.dinnerCities.id }).from(schema.dinnerCities).where(eq(schema.dinnerCities.id, cityId)).limit(1);
+      if (!byId) {
+        const [byName] = await db.select({ id: schema.dinnerCities.id }).from(schema.dinnerCities).where(eq(schema.dinnerCities.name, cityId)).limit(1);
+        if (byName) cityId = byName.id;
+        else {
+          const [created] = await db.insert(schema.dinnerCities).values({ name: cityId, country: 'Unknown', timezone: 'UTC' }).returning({ id: schema.dinnerCities.id });
+          cityId = created?.id ?? null;
+        }
+      }
+    }
     const [existing] = await db.select().from(schema.dinnerProfiles).where(eq(schema.dinnerProfiles.userId, userId)).limit(1);
     const profile = existing
       ? (await db.update(schema.dinnerProfiles).set({
-        cityId: body.cityId ?? null,
+        cityId,
         shortBio: body.shortBio ?? null,
         professionalBackground: body.professionalBackground,
         currentGoals: body.currentGoals,
@@ -82,7 +94,7 @@ export const dinnerService = {
       }).where(eq(schema.dinnerProfiles.id, existing.id)).returning())[0]
       : (await db.insert(schema.dinnerProfiles).values({
         userId,
-        cityId: body.cityId ?? null,
+        cityId,
         shortBio: body.shortBio ?? null,
         professionalBackground: body.professionalBackground,
         currentGoals: body.currentGoals,
@@ -127,4 +139,5 @@ export const dinnerService = {
     await db.delete(schema.dinnerPreferences).where(eq(schema.dinnerPreferences.userId, userId));
     await db.delete(schema.dinnerProfiles).where(eq(schema.dinnerProfiles.userId, userId));
   },
+
 };
