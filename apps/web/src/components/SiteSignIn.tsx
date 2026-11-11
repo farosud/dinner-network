@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import AuthForm from "@/components/AuthForm";
 import "./SiteSignIn.css";
@@ -79,12 +79,32 @@ export function SiteSignInCard({ bar, sentTo, sentNote, callbackURL, onAuthentic
   onBack: () => void;
   initialMode?: 'signin' | 'signup';
 }) {
+  const [devMagicLink, setDevMagicLink] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!sentTo || typeof window === "undefined" || !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+      setDevMagicLink(null);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/auth/dev-magic-link?email=${encodeURIComponent(sentTo)}`)
+      .then((response) => response.ok ? response.json() as Promise<{ link?: string | null }> : null)
+      .then((result) => { if (!cancelled) setDevMagicLink(result?.link ?? null); })
+      .catch(() => { if (!cancelled) setDevMagicLink(null); });
+    return () => { cancelled = true; };
+  }, [sentTo]);
+
   if (sentTo) {
     return (
       <Card bar={bar} className="signin-sent">
         <h3 className="signin-subtitle">Check your email</h3>
         <p className="site-p">We sent a sign-in link to <strong>{sentTo}</strong>.</p>
         <p className="site-p">{sentNote}</p>
+        {devMagicLink && (
+          <p className="site-p">
+            Local testing: <a href={devMagicLink}>open the magic link</a>
+          </p>
+        )}
         <button type="button" className="site-btn site-btn--secondary site-btn--block" onClick={onBack}>
           Back to sign in
         </button>
