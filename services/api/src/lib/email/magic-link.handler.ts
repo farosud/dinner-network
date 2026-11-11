@@ -2,11 +2,15 @@ import { escapeHtml, sanitizeUrlForHref } from '../escapeHtml';
 import { log } from '../log';
 
 import { executeSendEmail } from './transport.helper';
+import { rememberDevMagicLink } from './dev-magic-link';
 
 const logger = log.lib.from('email/magic-link.handler');
 
 export async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
   logger.info('Sending magic link email', { email });
+  if (process.env.NODE_ENV !== 'production' && !process.env.RESEND_API_KEY) {
+    rememberDevMagicLink(email, url, 600);
+  }
 
   const href = escapeHtml(sanitizeUrlForHref(url));
   const html = `<div style="font-family: 'SF Mono', Menlo, Consolas, 'Courier New', monospace; font-size: 13px; line-height: 1.7; color: #111; max-width: 560px;">

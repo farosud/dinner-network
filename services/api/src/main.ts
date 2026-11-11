@@ -38,6 +38,7 @@ import { API_URL, WEB_APP_URL } from './lib/betterauth/betterauth';
 import { opportunityExpirationCron } from './crons/opportunity-expiration.cron';
 import { startMessageEmails } from './lib/email/message-email.job';
 import { authenticateMcpRequest, handleMcpRequest } from './lib/mcp/mcp.server';
+import { getDevMagicLink } from './lib/email/dev-magic-link';
 
 opportunityExpirationCron.start();
 startMessageEmails();
@@ -219,6 +220,12 @@ Bun.serve({
         },
         { headers: corsHeaders }
       );
+    }
+
+    if (url.pathname === '/api/auth/dev-magic-link' && process.env.NODE_ENV !== 'production') {
+      const email = url.searchParams.get('email')?.trim();
+      const link = email ? getDevMagicLink(email) : null;
+      return Response.json({ link }, { headers: corsHeaders });
     }
 
     // Better Auth handles its own /api/auth/* routes (sign-in, sign-up, session, etc.)

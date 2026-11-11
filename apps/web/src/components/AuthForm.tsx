@@ -39,6 +39,7 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
   const [providersStatus, setProvidersStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [providersRetryKey, setProvidersRetryKey] = useState(0);
   const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
+  const [devMagicLink, setDevMagicLink] = useState<string | null>(null);
 
   useEffect(() => {
     ensureLandingFonts();
@@ -103,6 +104,10 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
       if (magicLinkError) {
         setError(magicLinkError.message || 'Failed to send sign-in link');
         return;
+      }
+      if (import.meta.env.DEV) {
+        const devResponse = await fetch(`${API_BASE}/auth/dev-magic-link?email=${encodeURIComponent(email)}`);
+        if (devResponse.ok) setDevMagicLink((await devResponse.json() as { link?: string | null }).link ?? null);
       }
       setView('magic-link-sent');
       onMagicLinkSent?.(email);
@@ -188,6 +193,11 @@ export default function AuthForm({ callbackURL, onAuthenticated, variant = 'defa
           <p className="av-note">
             Click the link in the email to sign in. It expires in 10 minutes.
           </p>
+          {devMagicLink && (
+            <p className="av-note">
+              Local testing: <a className="av-link" href={devMagicLink}>open the magic link</a>
+            </p>
+          )}
           <button type="button" className="av-submit ghost" onClick={resetForm}>
             Back to sign in
           </button>
