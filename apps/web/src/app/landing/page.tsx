@@ -2,7 +2,7 @@ import { ArrowUpRight, CalendarDays, ChevronRight, Sparkles, Users } from "lucid
 import { Link } from "react-router";
 import "./dinner-home.css";
 
-const signupPath = "/login?next=/dinners&mode=signup";
+const signupPath = "/login?next=/dinners/onboarding&mode=signup";
 const signinPath = "/login?next=/dinners";
 
 export default function LandingPage() {
